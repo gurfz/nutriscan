@@ -13,7 +13,7 @@ import { useRouter, Href } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Calendar, ChevronLeft, ChevronRight, Plus, X, Droplets, Coffee, Utensils, Moon, Apple, Minus } from 'lucide-react-native';
 import Colors from '@/constants/colors';
-import { useMealTracker, MealType } from '@/providers/MealTrackerProvider';
+import { useMealTracker, MealType, TrackedMeal } from '@/providers/MealTrackerProvider';
 import { useFridge } from '@/providers/FridgeProvider';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useSubscription } from '@/providers/SubscriptionProvider';
@@ -51,6 +51,7 @@ export default function TrackerPage() {
   const {
     addMeal,
     removeMeal,
+    getMealsForDate,
     getMealsForDateAndType,
     getDayStats,
     addWater,
@@ -63,6 +64,7 @@ export default function TrackerPage() {
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('day');
   const [showAddMealModal, setShowAddMealModal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
   const dayStats = useMemo(() => getDayStats(selectedDate), [selectedDate, getDayStats]);
   const nutrientGoals = useMemo(() => calculateNutrientGoals(bodyweight, fitnessGoal), [bodyweight, fitnessGoal, calculateNutrientGoals]);
@@ -120,6 +122,203 @@ export default function TrackerPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const getWeekDates = (date: Date): string[] => {
+    const dates: string[] = [];
+    const current = new Date(date);
+    const day = current.getDay();
+    const diff = current.getDate() - day;
+    current.setDate(diff);
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(current);
+      d.setDate(current.getDate() + i);
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    return dates;
+  };
+
+  const getMonthDates = (date: Date): string[] => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const dates: string[] = [];
+    
+    const startDay = firstDay.getDay();
+    for (let i = 0; i < startDay; i++) {
+      const d = new Date(firstDay);
+      d.setDate(d.getDate() - (startDay - i));
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      const d = new Date(year, month, i);
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    
+    const endDay = lastDay.getDay();
+    for (let i = 1; i < 7 - endDay; i++) {
+      const d = new Date(lastDay);
+      d.setDate(d.getDate() + i);
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    
+    return dates;
+  };
+
+  const renderCalendarView = () => {
+    if (calendarView === 'week') {
+      const weekDates = getWeekDates(new Date(selectedDate));
+      const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      
+      return (
+        <View style={styles.weekCalendar}>
+          {weekDates.map((date, index) => {
+            const meals = getMealsForDate(date);
+            const isSelected = date === selectedDate;
+            const isToday = date === getLocalDateString();
+            const dayNum = new Date(date).getDate();
+            
+            return (
+              <TouchableOpacity
+                key={date}
+                style={[
+                  styles.weekDayContainer,
+                  isSelected && styles.weekDaySelected,
+                ]}
+                onPress={() => setSelectedDate(date)}
+              >
+                <Text style={[
+                  styles.weekDayLabel,
+                  isSelected && styles.weekDayLabelSelected,
+                ]}>
+                  {weekDays[index]}
+                </Text>
+                <View style={[
+                  styles.weekDayNumber,
+                  isToday && styles.weekDayToday,
+                  isSelected && styles.weekDayNumberSelected,
+                ]}>
+                  <Text style={[
+                    styles.weekDayNumberText,
+                    isSelected && styles.weekDayNumberTextSelected,
+                    isToday && !isSelected && styles.weekDayTodayText,
+                  ]}>
+                    {dayNum}
+                  </Text>
+                </View>
+                <View style={styles.weekMealBubbles}>
+                  {meals.slice(0, 3).map((meal: TrackedMeal, idx: number) => (
+                    <Image
+                      key={meal.id}
+                      source={{ uri: meal.product.imageUrl }}
+                      style={[styles.weekMealBubble, { marginLeft: idx * -6 }]}
+                    />
+                  ))}
+                  {meals.length > 3 && (
+                    <View style={[styles.weekMealBubble, styles.weekMealBubbleMore, { marginLeft: -6 }]}>
+                      <Text style={styles.weekMealBubbleMoreText}>+{meals.length - 3}</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      );
+    }
+    
+    if (calendarView === 'month') {
+      const monthDates = getMonthDates(currentMonth);
+      const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      
+      return (
+        <View style={styles.monthCalendar}>
+          <View style={styles.monthHeader}>
+            <TouchableOpacity
+              style={styles.monthNavButton}
+              onPress={() => {
+                const newMonth = new Date(currentMonth);
+                newMonth.setMonth(newMonth.getMonth() - 1);
+                setCurrentMonth(newMonth);
+              }}
+            >
+              <ChevronLeft color={Colors.primary} size={20} />
+            </TouchableOpacity>
+            <Text style={styles.monthTitle}>
+              {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity
+              style={styles.monthNavButton}
+              onPress={() => {
+                const newMonth = new Date(currentMonth);
+                newMonth.setMonth(newMonth.getMonth() + 1);
+                setCurrentMonth(newMonth);
+              }}
+            >
+              <ChevronRight color={Colors.primary} size={20} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.monthWeekDays}>
+            {weekDays.map((day, idx) => (
+              <Text key={idx} style={styles.monthWeekDayLabel}>{day}</Text>
+            ))}
+          </View>
+          
+          <View style={styles.monthDaysGrid}>
+            {monthDates.map((date) => {
+              const meals = getMealsForDate(date);
+              const isSelected = date === selectedDate;
+              const isToday = date === getLocalDateString();
+              const isCurrentMonth = new Date(date).getMonth() === currentMonth.getMonth();
+              const dayNum = new Date(date).getDate();
+              
+              return (
+                <TouchableOpacity
+                  key={date}
+                  style={[
+                    styles.monthDayCell,
+                    isSelected && styles.monthDayCellSelected,
+                  ]}
+                  onPress={() => setSelectedDate(date)}
+                >
+                  <View style={[
+                    styles.monthDayNumber,
+                    isToday && styles.monthDayToday,
+                    isSelected && styles.monthDayNumberSelected,
+                  ]}>
+                    <Text style={[
+                      styles.monthDayText,
+                      !isCurrentMonth && styles.monthDayTextOtherMonth,
+                      isSelected && styles.monthDayTextSelected,
+                      isToday && !isSelected && styles.monthDayTodayText,
+                    ]}>
+                      {dayNum}
+                    </Text>
+                  </View>
+                  {meals.length > 0 && (
+                    <View style={styles.monthMealIndicators}>
+                      {meals.slice(0, 4).map((meal: TrackedMeal, idx: number) => (
+                        <Image
+                          key={meal.id}
+                          source={{ uri: meal.product.imageUrl }}
+                          style={styles.monthMealBubble}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      );
+    }
+    
+    return null;
   };
 
   if (!isPremium) {
@@ -229,18 +428,22 @@ export default function TrackerPage() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.dateNavigation}>
-            <TouchableOpacity style={styles.navButton} onPress={() => handleDateChange('prev')}>
-              <ChevronLeft color={Colors.primary} size={24} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.dateDisplay} onPress={handleToday}>
-              <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navButton} onPress={() => handleDateChange('next')}>
-              <ChevronRight color={Colors.primary} size={24} />
-            </TouchableOpacity>
-          </View>
+          {calendarView === 'day' && (
+            <View style={styles.dateNavigation}>
+              <TouchableOpacity style={styles.navButton} onPress={() => handleDateChange('prev')}>
+                <ChevronLeft color={Colors.primary} size={24} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.dateDisplay} onPress={handleToday}>
+                <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.navButton} onPress={() => handleDateChange('next')}>
+                <ChevronRight color={Colors.primary} size={24} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
+
+        {(calendarView === 'week' || calendarView === 'month') && renderCalendarView()}
 
         <View style={styles.statsSection}>
           <View style={styles.statCard}>
@@ -822,5 +1025,171 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700' as const,
     color: '#FFFFFF',
+  },
+  weekCalendar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 8,
+  },
+  weekDayContainer: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  weekDaySelected: {
+    backgroundColor: Colors.primaryLight,
+  },
+  weekDayLabel: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  weekDayLabelSelected: {
+    color: Colors.primary,
+  },
+  weekDayNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  weekDayToday: {
+    backgroundColor: Colors.primaryLight,
+  },
+  weekDayNumberSelected: {
+    backgroundColor: Colors.primary,
+  },
+  weekDayNumberText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  weekDayNumberTextSelected: {
+    color: '#FFFFFF',
+  },
+  weekDayTodayText: {
+    color: Colors.primary,
+  },
+  weekMealBubbles: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 20,
+  },
+  weekMealBubble: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.background,
+  },
+  weekMealBubbleMore: {
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weekMealBubbleMoreText: {
+    fontSize: 8,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  monthCalendar: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  monthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  monthNavButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  monthTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  monthWeekDays: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  monthWeekDayLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: Colors.textSecondary,
+  },
+  monthDaysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  monthDayCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    padding: 2,
+  },
+  monthDayCellSelected: {
+    backgroundColor: 'transparent',
+  },
+  monthDayNumber: {
+    width: '100%',
+    height: '60%',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  monthDayToday: {
+    backgroundColor: Colors.primaryLight,
+  },
+  monthDayNumberSelected: {
+    backgroundColor: Colors.primary,
+  },
+  monthDayText: {
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: Colors.text,
+  },
+  monthDayTextOtherMonth: {
+    color: Colors.textMuted,
+  },
+  monthDayTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700' as const,
+  },
+  monthDayTodayText: {
+    color: Colors.primary,
+    fontWeight: '700' as const,
+  },
+  monthMealIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 2,
+    gap: 2,
+  },
+  monthMealBubble: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
   },
 });
