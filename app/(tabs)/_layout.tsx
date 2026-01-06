@@ -1,5 +1,5 @@
 import { Tabs, useRouter, Href } from "expo-router";
-import { Home, History, Settings, Scan } from "lucide-react-native";
+import { Home, History, Settings, Scan, Refrigerator, Calendar } from "lucide-react-native";
 import React from "react";
 import Colors from "@/constants/colors";
 
@@ -50,6 +50,20 @@ export default function TabLayout() {
             e.preventDefault();
             router.push('/scanner' as Href);
           },
+        }}
+      />
+      <Tabs.Screen
+        name="my-fridge"
+        options={{
+          title: "My Fridge",
+          tabBarIcon: ({ color, size }) => <Refrigerator color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="tracker"
+        options={{
+          title: "Tracker",
+          tabBarIcon: ({ color, size }) => <Calendar color={color} size={size} />,
         }}
       />
       <Tabs.Screen

@@ -17,7 +17,6 @@ import { useFridge } from '@/providers/FridgeProvider';
 import { useSubscription } from '@/providers/SubscriptionProvider';
 import { getHealthScoreColor } from '@/types/product';
 import { generateText } from '@rork-ai/toolkit-sdk';
-import PageSwitcher from '@/components/PageSwitcher';
 
 interface MealIdea {
   name: string;
@@ -147,7 +146,6 @@ Only return the JSON array.`;
           colors={[Colors.primaryLight, Colors.background]}
           style={styles.headerGradient}
         />
-        <PageSwitcher currentPage="fridge" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -211,7 +209,6 @@ Only return the JSON array.`;
         colors={[Colors.primaryLight, Colors.background]}
         style={styles.headerGradient}
       />
-      <PageSwitcher currentPage="fridge" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

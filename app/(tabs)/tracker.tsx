@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
-import ScannerPage from '@/components/pages/ScannerPage';
+import TrackerPage from '@/components/pages/TrackerPage';
 
-export default function HomeScreen() {
+export default function TrackerTab() {
   return (
     <View style={styles.container}>
-      <ScannerPage />
+      <TrackerPage />
     </View>
   );
 }

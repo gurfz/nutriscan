@@ -20,7 +20,7 @@ import { useSubscription } from '@/providers/SubscriptionProvider';
 import { getHealthScoreColor } from '@/types/product';
 import NutrientProgressBar from '@/components/NutrientProgressBar';
 import * as Haptics from 'expo-haptics';
-import PageSwitcher from '@/components/PageSwitcher';
+
 
 function getLocalDateString(): string {
   const now = new Date();
@@ -333,7 +333,6 @@ export default function TrackerPage() {
           colors={[Colors.primaryLight, Colors.background]}
           style={styles.headerGradient}
         />
-        <PageSwitcher currentPage="tracker" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -397,7 +396,6 @@ export default function TrackerPage() {
         colors={[Colors.primaryLight, Colors.background]}
         style={styles.headerGradient}
       />
-      <PageSwitcher currentPage="tracker" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

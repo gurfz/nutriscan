@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Colors from '@/constants/colors';
-import ScannerPage from '@/components/pages/ScannerPage';
+import MyFridgePage from '@/components/pages/MyFridgePage';
 
-export default function HomeScreen() {
+export default function MyFridgeTab() {
   return (
     <View style={styles.container}>
-      <ScannerPage />
+      <MyFridgePage />
     </View>
   );
 }
