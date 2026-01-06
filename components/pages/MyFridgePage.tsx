@@ -35,7 +35,25 @@ export default function MyFridgePage() {
   const [activeSection, setActiveSection] = useState<'insights' | 'meals'>('insights');
   const [mealIdeas, setMealIdeas] = useState<MealIdea[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
+  const [fridgeItemPositions, setFridgeItemPositions] = useState<Record<string, { row: number; col: number }>>({});
   const fridgeAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setFridgeItemPositions(prev => {
+      const positions: Record<string, { row: number; col: number }> = {};
+      fridgeItems.forEach((item, index) => {
+        if (prev[item.barcode]) {
+          positions[item.barcode] = prev[item.barcode];
+        } else {
+          positions[item.barcode] = {
+            row: Math.floor(index / 3),
+            col: index % 3,
+          };
+        }
+      });
+      return positions;
+    });
+  }, [fridgeItems]);
 
   useEffect(() => {
     Animated.loop(
@@ -197,47 +215,44 @@ Only return the JSON array.`;
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Fridge</Text>
+          <Text style={styles.title}>My Fridge</Text>
           <Text style={styles.subtitle}>{fridgeItems.length} items</Text>
         </View>
 
         <Animated.View style={[styles.fridgeContainer, { transform: [{ translateY }] }]}>
           <LinearGradient
-            colors={['#E8F5E9', '#C8E6C9']}
+            colors={[Colors.surface, Colors.surfaceSecondary]}
             style={styles.fridgeBody}
           >
-            <View style={styles.fridgeTop}>
-              <View style={styles.fridgeTopDecor} />
-              <View style={styles.fridgeTopDecor} />
-              <View style={styles.fridgeTopDecor} />
-            </View>
             <View style={styles.fridgeDoor}>
               <View style={styles.fridgeHandle} />
-              <View style={styles.fridgeItemsContainer}>
-                {fridgeItems.map((item, index) => (
-                  <View key={item.barcode} style={styles.fridgeItemBar}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.fridgeItemImage} />
-                    <View style={styles.fridgeItemInfo}>
-                      <Text style={styles.fridgeItemName} numberOfLines={1}>
-                        {item.name}
-                      </Text>
-                      <Text style={styles.fridgeItemBrand} numberOfLines={1}>
-                        {item.brand}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.fridgeItemRemove}
-                      onPress={() => removeFromFridge(item.barcode)}
+              <View style={styles.fridgeGrid}>
+                {fridgeItems.slice(0, 12).map((item) => {
+                  const pos = fridgeItemPositions[item.barcode] || { row: 0, col: 0 };
+                  return (
+                    <View
+                      key={item.barcode}
+                      style={[
+                        styles.fridgeBox,
+                        {
+                          left: `${pos.col * 31 + 3}%`,
+                          top: `${pos.row * 23 + 5}%`,
+                        },
+                      ]}
                     >
-                      <X color={Colors.danger} size={16} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                      <View style={styles.boxInner}>
+                        <Image source={{ uri: item.imageUrl }} style={styles.boxImage} />
+                        <TouchableOpacity
+                          style={styles.boxRemove}
+                          onPress={() => removeFromFridge(item.barcode)}
+                        >
+                          <X color="#FFFFFF" size={10} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-            </View>
-            <View style={styles.fridgeBottom}>
-              <View style={styles.fridgeFoot} />
-              <View style={styles.fridgeFoot} />
             </View>
           </LinearGradient>
         </Animated.View>
@@ -367,7 +382,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: 24,
   },
   title: {
@@ -384,113 +399,63 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   fridgeBody: {
-    borderRadius: 24,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     minHeight: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: '#A5D6A7',
-  },
-  fridgeTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: '#A5D6A7',
-    marginBottom: 12,
-  },
-  fridgeTopDecor: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#66BB6A',
   },
   fridgeDoor: {
     position: 'relative',
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    padding: 12,
   },
   fridgeHandle: {
     position: 'absolute',
-    right: 8,
+    right: 10,
     top: '50%',
-    width: 10,
-    height: 80,
-    backgroundColor: '#81C784',
-    borderRadius: 5,
-    marginTop: -40,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#66BB6A',
+    width: 8,
+    height: 60,
+    backgroundColor: Colors.border,
+    borderRadius: 4,
+    marginTop: -30,
   },
-  fridgeItemsContainer: {
-    gap: 8,
-  },
-  fridgeItemBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  fridgeItemImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: Colors.surfaceSecondary,
-  },
-  fridgeItemInfo: {
+  fridgeGrid: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
+    position: 'relative',
   },
-  fridgeItemName: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.text,
-    marginBottom: 2,
+  fridgeBox: {
+    position: 'absolute',
+    width: '28%',
+    aspectRatio: 1,
   },
-  fridgeItemBrand: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  fridgeItemRemove: {
+  boxInner: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.border,
     padding: 6,
-  },
-  fridgeBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  fridgeFoot: {
-    width: 60,
-    height: 12,
-    backgroundColor: '#66BB6A',
-    borderRadius: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
+  },
+  boxImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 4,
+  },
+  boxRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   tabContainer: {
     flexDirection: 'row',
