@@ -243,12 +243,16 @@ Only return the JSON array.`;
             </LinearGradient>
             
             <LinearGradient
-              colors={['#ECEFF1', '#CFD8DC']}
+              colors={['#E8EAF6', '#C5CAE9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={styles.fridgeBody}
             >
               <View style={styles.fridgeDoor}>
                 <LinearGradient
-                  colors={['#FAFAFA', '#F5F5F5', '#EEEEEE']}
+                  colors={['#FFFFFF', '#F8F9FA', '#E3F2FD']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
                   style={styles.fridgeDoorFrame}
                 >
                   <View style={styles.fridgeHandle}>
@@ -366,6 +370,32 @@ Only return the JSON array.`;
                   </Text>
                   <Text style={styles.insightDescription}>
                     Items with health score 80+
+                  </Text>
+                </View>
+
+                <View style={styles.insightCard}>
+                  <View style={styles.insightHeader}>
+                    <AlertCircle color={Colors.warning} size={24} />
+                    <Text style={styles.insightTitle}>Additives Found</Text>
+                  </View>
+                  <Text style={[styles.insightValue, { color: Colors.warning }]}>
+                    {fridgeItems.reduce((sum, item) => sum + (item.additives?.length || 0), 0)}
+                  </Text>
+                  <Text style={styles.insightDescription}>
+                    Total additives across all items
+                  </Text>
+                </View>
+
+                <View style={styles.insightCard}>
+                  <View style={styles.insightHeader}>
+                    <Refrigerator color={Colors.info} size={24} />
+                    <Text style={styles.insightTitle}>Organic Items</Text>
+                  </View>
+                  <Text style={[styles.insightValue, { color: Colors.info }]}>
+                    {fridgeItems.filter(item => item.isOrganic).length}
+                  </Text>
+                  <Text style={styles.insightDescription}>
+                    Certified organic products
                   </Text>
                 </View>
               </View>
@@ -711,9 +741,13 @@ const styles = StyleSheet.create({
     minHeight: 420,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderColor: '#B0BEC5',
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderColor: '#9FA8DA',
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   fridgeDoor: {
     flex: 1,
@@ -723,13 +757,13 @@ const styles = StyleSheet.create({
   fridgeDoorFrame: {
     flex: 1,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    borderWidth: 3,
+    borderColor: '#B0BEC5',
+    shadowColor: '#3949AB',
+    shadowOffset: { width: -2, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
   },
   fridgeDoorInner: {
     flex: 1,
@@ -740,31 +774,35 @@ const styles = StyleSheet.create({
   },
   fridgeHandle: {
     position: 'absolute',
-    right: -2,
+    right: -3,
     top: '40%',
-    width: 16,
-    height: 120,
-    backgroundColor: '#9E9E9E',
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-    marginTop: -60,
+    width: 20,
+    height: 140,
+    backgroundColor: '#78909C',
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    marginTop: -70,
     shadowColor: '#000',
-    shadowOffset: { width: -3, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOffset: { width: -4, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 10,
     zIndex: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderRightWidth: 0,
-    borderColor: '#757575',
+    borderColor: '#546E7A',
   },
   fridgeHandleInner: {
-    width: 4,
-    height: 80,
-    backgroundColor: '#BDBDBD',
-    borderRadius: 2,
+    width: 5,
+    height: 100,
+    backgroundColor: '#90A4AE',
+    borderRadius: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   },
   fridgeItemsScroll: {
     flex: 1,
