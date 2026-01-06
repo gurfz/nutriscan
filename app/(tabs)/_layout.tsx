@@ -55,7 +55,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="my-fridge"
         options={{
-          title: "My Fridge",
+          title: "Fridge",
           tabBarIcon: ({ color, size }) => <Refrigerator color={color} size={size} />,
         }}
       />
