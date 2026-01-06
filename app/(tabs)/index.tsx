@@ -1,100 +1,192 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Dimensions,
-  Animated,
   TouchableOpacity,
+  ScrollView,
+  Image,
+  Animated,
+  Platform,
 } from 'react-native';
+import { useRouter, Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Scan, Refrigerator } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '@/constants/colors';
-import ScannerPage from '@/components/pages/ScannerPage';
-import MyFridgePage from '@/components/pages/MyFridgePage';
-import TrackerPage from '@/components/pages/TrackerPage';
+import { useScanHistory } from '@/providers/ScanHistoryProvider';
+import { useFridge } from '@/providers/FridgeProvider';
+import * as Haptics from 'expo-haptics';
+import { getHealthScoreColor, getHealthScoreLabel } from '@/types/product';
+import CircularProgress from '@/components/CircularProgress';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-type PageType = 'scanner' | 'fridge' | 'tracker';
 
 export default function HomeScreen() {
-  const scrollViewRef = useRef<ScrollView>(null);
-  const [activePage, setActivePage] = useState<PageType>('scanner');
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
+  const { recentScans, isLoading } = useScanHistory();
+  const { toggleFridge, isInFridge } = useFridge();
 
-  const handlePagePress = (page: PageType, index: number) => {
-    setActivePage(page);
-    scrollViewRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
+
+  const handleScanPress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.push('/scanner' as Href);
+    });
   };
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    {
-      useNativeDriver: false,
-      listener: (event: any) => {
-        const offsetX = event.nativeEvent.contentOffset.x;
-        const pageIndex = Math.round(offsetX / SCREEN_WIDTH);
-        const pages: PageType[] = ['scanner', 'fridge', 'tracker'];
-        if (pages[pageIndex] && pages[pageIndex] !== activePage) {
-          setActivePage(pages[pageIndex]);
-        }
-      },
+  const handleProductPress = (barcode: string) => {
+    router.push({ pathname: '/product/[barcode]', params: { barcode } } as Href);
+  };
+
+  const handleToggleFridge = (product: typeof recentScans[0]) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-  );
+    toggleFridge(product);
+  };
+
+  const ProductCard = ({ product }: { product: typeof recentScans[0] }) => {
+    const inFridge = isInFridge(product.barcode);
+    const imageUrl = product.imageUrl;
+
+    return (
+      <TouchableOpacity
+        key={product.barcode}
+        style={styles.productCard}
+        onPress={() => handleProductPress(product.barcode)}
+        activeOpacity={0.7}
+        testID={`product-${product.barcode}`}
+      >
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.productImage}
+        />
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={1}>
+            {product.name}
+          </Text>
+          <Text style={styles.productBrand}>{product.brand}</Text>
+          <View style={styles.scoreRow}>
+            <CircularProgress
+              size={40}
+              strokeWidth={4}
+              progress={product.healthScore}
+              color={getHealthScoreColor(product.healthScore)}
+              backgroundColor={getHealthScoreColor(product.healthScore) + '30'}
+            >
+              <Text
+                style={[
+                  styles.scoreTextCircle,
+                  { color: getHealthScoreColor(product.healthScore) },
+                ]}
+              >
+                {product.healthScore}
+              </Text>
+            </CircularProgress>
+            <View style={styles.scoreTextContainer}>
+              <Text style={styles.scoreLabelText}>{getHealthScoreLabel(product.healthScore)}</Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.fridgeIconButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleToggleFridge(product);
+          }}
+        >
+          <Refrigerator
+            color={inFridge ? Colors.primary : Colors.textMuted}
+            size={20}
+            fill={inFridge ? Colors.primary : 'none'}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
+      <LinearGradient
+        colors={[Colors.primaryLight, Colors.background]}
+        style={styles.headerGradient}
+      />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.tabBar}>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => handlePagePress('scanner', 0)}
-          >
-            <Text style={[styles.tabText, activePage === 'scanner' && styles.tabTextActive]}>
-              Scanner
-            </Text>
-            {activePage === 'scanner' && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => handlePagePress('fridge', 1)}
-          >
-            <Text style={[styles.tabText, activePage === 'fridge' && styles.tabTextActive]}>
-              My Fridge
-            </Text>
-            {activePage === 'fridge' && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => handlePagePress('tracker', 2)}
-          >
-            <Text style={[styles.tabText, activePage === 'tracker' && styles.tabTextActive]}>
-              Tracker
-            </Text>
-            {activePage === 'tracker' && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-        </View>
-
-        <Animated.ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          bounces={false}
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.page}>
-            <ScannerPage />
+          <View style={styles.header}>
+            <Text style={styles.greeting}>Welcome back</Text>
+            <Text style={styles.title}>NutriScan</Text>
+            <Text style={styles.subtitle}>
+              Take a photo of any food product to get instant health insights
+            </Text>
           </View>
-          <View style={styles.page}>
-            <MyFridgePage />
-          </View>
-          <View style={styles.page}>
-            <TrackerPage />
-          </View>
-        </Animated.ScrollView>
+
+          <Animated.View style={[styles.scanButtonContainer, { transform: [{ scale: scaleAnim }] }]}>
+            <TouchableOpacity
+              style={styles.scanButton}
+              onPress={handleScanPress}
+              activeOpacity={0.9}
+              testID="scan-button"
+            >
+              <LinearGradient
+                colors={[Colors.primary, Colors.primaryDark]}
+                style={styles.scanButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <View style={styles.scanIconContainer}>
+                  <Scan color="#FFFFFF" size={48} strokeWidth={1.5} />
+                </View>
+                <Text style={styles.scanButtonText}>Scan Product</Text>
+                <Text style={styles.scanButtonSubtext}>Take a photo of the product</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          {recentScans.length > 0 && (
+            <View style={styles.recentSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Scans</Text>
+                <TouchableOpacity onPress={() => router.push('/history' as Href)}>
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              {recentScans.map((product) => (
+                <View key={product.barcode} style={styles.productCardContainer}>
+                  <ProductCard product={product} />
+                </View>
+              ))}
+            </View>
+          )}
+
+          {recentScans.length === 0 && !isLoading && (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Scan color={Colors.textMuted} size={48} />
+              </View>
+              <Text style={styles.emptyTitle}>No scans yet</Text>
+              <Text style={styles.emptyText}>
+                Start taking photos of products to see their health analysis here
+              </Text>
+            </View>
+          )}
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -105,41 +197,203 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
   safeArea: {
     flex: 1,
   },
-  tabBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.borderLight,
-  },
-  tabItem: {
+  scrollView: {
     flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
   },
-  tabText: {
+  scrollContent: {
+    paddingBottom: 32,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  greeting: {
     fontSize: 14,
-    fontWeight: '500' as const,
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
+    marginBottom: 4,
   },
-  tabTextActive: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+  },
+  scanButtonContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  scanButton: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  scanButtonGradient: {
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  scanIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  scanButtonText: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  scanButtonSubtext: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  recentSection: {
+    paddingHorizontal: 24,
+  },
+  productCardContainer: {
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: Colors.text,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
     color: Colors.primary,
+  },
+  productCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceSecondary,
+  },
+  productInfo: {
+    flex: 1,
+    marginLeft: 16,
+    marginRight: 12,
+  },
+  fridgeIconButton: {
+    padding: 8,
+    marginRight: 4,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginBottom: 2,
+  },
+  productBrand: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 8,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  scoreTextCircle: {
+    fontSize: 12,
     fontWeight: '700' as const,
   },
-  tabIndicator: {
-    marginTop: 6,
-    width: 40,
-    height: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-  },
-  page: {
-    width: SCREEN_WIDTH,
+  scoreTextContainer: {
     flex: 1,
   },
+  scoreLabelText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  scoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  scoreDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  scoreText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingHorizontal: 48,
+    paddingTop: 32,
+  },
+  emptyIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
 });
