@@ -18,6 +18,7 @@ import { useFridge } from '@/providers/FridgeProvider';
 import * as Haptics from 'expo-haptics';
 import { getHealthScoreColor, getHealthScoreLabel } from '@/types/product';
 import CircularProgress from '@/components/CircularProgress';
+import PageSwitcher from '@/components/PageSwitcher';
 
 export default function ScannerPage() {
   const router = useRouter();
@@ -120,6 +121,7 @@ export default function ScannerPage() {
         colors={[Colors.primaryLight, Colors.background]}
         style={styles.headerGradient}
       />
+      <PageSwitcher currentPage="scanner" />
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

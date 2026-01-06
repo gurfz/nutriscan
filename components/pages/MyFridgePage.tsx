@@ -17,6 +17,7 @@ import { useFridge } from '@/providers/FridgeProvider';
 import { useSubscription } from '@/providers/SubscriptionProvider';
 import { getHealthScoreColor } from '@/types/product';
 import { generateText } from '@rork-ai/toolkit-sdk';
+import PageSwitcher from '@/components/PageSwitcher';
 
 interface MealIdea {
   name: string;
@@ -35,7 +36,25 @@ export default function MyFridgePage() {
   const [activeSection, setActiveSection] = useState<'insights' | 'meals'>('insights');
   const [mealIdeas, setMealIdeas] = useState<MealIdea[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
+  const [fridgeItemPositions, setFridgeItemPositions] = useState<Record<string, { row: number; col: number }>>({});
   const fridgeAnim = React.useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    setFridgeItemPositions(prev => {
+      const positions: Record<string, { row: number; col: number }> = {};
+      fridgeItems.forEach((item, index) => {
+        if (prev[item.barcode]) {
+          positions[item.barcode] = prev[item.barcode];
+        } else {
+          positions[item.barcode] = {
+            row: Math.floor(index / 3),
+            col: index % 3,
+          };
+        }
+      });
+      return positions;
+    });
+  }, [fridgeItems]);
 
   useEffect(() => {
     Animated.loop(
@@ -128,6 +147,7 @@ Only return the JSON array.`;
           colors={[Colors.primaryLight, Colors.background]}
           style={styles.headerGradient}
         />
+        <PageSwitcher currentPage="fridge" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -191,6 +211,7 @@ Only return the JSON array.`;
         colors={[Colors.primaryLight, Colors.background]}
         style={styles.headerGradient}
       />
+      <PageSwitcher currentPage="fridge" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -208,27 +229,32 @@ Only return the JSON array.`;
           >
             <View style={styles.fridgeDoor}>
               <View style={styles.fridgeHandle} />
-              <View style={styles.fridgeItems}>
-                {fridgeItems.slice(0, 12).map((item, index) => (
-                  <Animated.View
-                    key={item.barcode}
-                    style={[
-                      styles.fridgeBubble,
-                      {
-                        left: `${(index % 3) * 30 + 10}%`,
-                        top: `${Math.floor(index / 3) * 20 + 10}%`,
-                      },
-                    ]}
-                  >
-                    <Image source={{ uri: item.imageUrl }} style={styles.bubbleImage} />
-                    <TouchableOpacity
-                      style={styles.bubbleRemove}
-                      onPress={() => removeFromFridge(item.barcode)}
+              <View style={styles.fridgeGrid}>
+                {fridgeItems.slice(0, 12).map((item) => {
+                  const pos = fridgeItemPositions[item.barcode] || { row: 0, col: 0 };
+                  return (
+                    <View
+                      key={item.barcode}
+                      style={[
+                        styles.fridgeBox,
+                        {
+                          left: `${pos.col * 31 + 3}%`,
+                          top: `${pos.row * 23 + 5}%`,
+                        },
+                      ]}
                     >
-                      <X color="#FFFFFF" size={12} />
-                    </TouchableOpacity>
-                  </Animated.View>
-                ))}
+                      <View style={styles.boxInner}>
+                        <Image source={{ uri: item.imageUrl }} style={styles.boxImage} />
+                        <TouchableOpacity
+                          style={styles.boxRemove}
+                          onPress={() => removeFromFridge(item.barcode)}
+                        >
+                          <X color="#FFFFFF" size={10} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           </LinearGradient>
@@ -394,38 +420,45 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginTop: -30,
   },
-  fridgeItems: {
+  fridgeGrid: {
     flex: 1,
     position: 'relative',
   },
-  fridgeBubble: {
+  fridgeBox: {
     position: 'absolute',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: Colors.surface,
-    padding: 4,
+    width: '28%',
+    aspectRatio: 1,
+  },
+  boxInner: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    padding: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
-  bubbleImage: {
+  boxImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 31,
+    borderRadius: 4,
   },
-  bubbleRemove: {
+  boxRemove: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: Colors.danger,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   tabContainer: {
     flexDirection: 'row',
