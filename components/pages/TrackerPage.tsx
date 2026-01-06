@@ -20,7 +20,6 @@ import { useSubscription } from '@/providers/SubscriptionProvider';
 import { getHealthScoreColor } from '@/types/product';
 import NutrientProgressBar from '@/components/NutrientProgressBar';
 import * as Haptics from 'expo-haptics';
-import PageSwitcher from '@/components/PageSwitcher';
 
 function getLocalDateString(): string {
   const now = new Date();
@@ -59,7 +58,6 @@ export default function TrackerPage() {
     removeWater,
     getWaterForDate,
     calculateNutrientGoals,
-    getPeriodStats,
   } = useMealTracker();
 
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
@@ -67,13 +65,10 @@ export default function TrackerPage() {
   const [showAddMealModal, setShowAddMealModal] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<MealType>('breakfast');
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [statsView, setStatsView] = useState<'week' | 'month'>('week');
 
   const dayStats = useMemo(() => getDayStats(selectedDate), [selectedDate, getDayStats]);
   const nutrientGoals = useMemo(() => calculateNutrientGoals(bodyweight, fitnessGoal), [bodyweight, fitnessGoal, calculateNutrientGoals]);
   const waterIntake = useMemo(() => getWaterForDate(selectedDate), [selectedDate, getWaterForDate]);
-  const weekStats = useMemo(() => getPeriodStats(7, bodyweight, fitnessGoal), [bodyweight, fitnessGoal, getPeriodStats]);
-  const monthStats = useMemo(() => getPeriodStats(30, bodyweight, fitnessGoal), [bodyweight, fitnessGoal, getPeriodStats]);
 
   const handleDateChange = (direction: 'prev' | 'next') => {
     const date = new Date(selectedDate);
@@ -333,7 +328,6 @@ export default function TrackerPage() {
           colors={[Colors.primaryLight, Colors.background]}
           style={styles.headerGradient}
         />
-        <PageSwitcher currentPage="tracker" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -397,7 +391,6 @@ export default function TrackerPage() {
         colors={[Colors.primaryLight, Colors.background]}
         style={styles.headerGradient}
       />
-      <PageSwitcher currentPage="tracker" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -474,95 +467,6 @@ export default function TrackerPage() {
             </Text>
           </View>
         </View>
-
-        <View style={styles.statsToggle}>
-          <TouchableOpacity
-            style={[styles.statsToggleButton, statsView === 'week' && styles.statsToggleButtonActive]}
-            onPress={() => setStatsView('week')}
-          >
-            <Text style={[styles.statsToggleText, statsView === 'week' && styles.statsToggleTextActive]}>
-              Week Avg
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.statsToggleButton, statsView === 'month' && styles.statsToggleButtonActive]}
-            onPress={() => setStatsView('month')}
-          >
-            <Text style={[styles.statsToggleText, statsView === 'month' && styles.statsToggleTextActive]}>
-              Month Avg
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {statsView === 'week' && (
-          <View style={styles.periodStatsSection}>
-            <View style={styles.periodStatsGrid}>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Calories</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.primary }]}>
-                  {weekStats.avgNutrients.calories}
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.calories}</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Protein</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.success }]}>
-                  {weekStats.avgNutrients.protein}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.protein}g</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Carbs</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.warning }]}>
-                  {weekStats.avgNutrients.carbs}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.carbs}g</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Fat</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.secondary }]}>
-                  {weekStats.avgNutrients.fat}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.fat}g</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {statsView === 'month' && (
-          <View style={styles.periodStatsSection}>
-            <View style={styles.periodStatsGrid}>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Calories</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.primary }]}>
-                  {monthStats.avgNutrients.calories}
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.calories}</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Protein</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.success }]}>
-                  {monthStats.avgNutrients.protein}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.protein}g</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Carbs</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.warning }]}>
-                  {monthStats.avgNutrients.carbs}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.carbs}g</Text>
-              </View>
-              <View style={styles.periodStatCard}>
-                <Text style={styles.periodStatLabel}>Avg Fat</Text>
-                <Text style={[styles.periodStatValue, { color: Colors.secondary }]}>
-                  {monthStats.avgNutrients.fat}g
-                </Text>
-                <Text style={styles.periodStatGoal}>/ {nutrientGoals.fat}g</Text>
-              </View>
-            </View>
-          </View>
-        )}
 
         <View style={styles.nutrientsSection}>
           <Text style={styles.sectionTitle}>Daily Nutrition</Text>
@@ -1287,68 +1191,5 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.primary,
-  },
-  statsToggle: {
-    flexDirection: 'row',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  statsToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  statsToggleButtonActive: {
-    backgroundColor: Colors.primaryLight,
-  },
-  statsToggleText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: Colors.textSecondary,
-  },
-  statsToggleTextActive: {
-    color: Colors.primary,
-    fontWeight: '700' as const,
-  },
-  periodStatsSection: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  periodStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  periodStatCard: {
-    flex: 1,
-    minWidth: '47%',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  periodStatLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 8,
-  },
-  periodStatValue: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    marginBottom: 4,
-  },
-  periodStatGoal: {
-    fontSize: 11,
-    color: Colors.textMuted,
   },
 });
