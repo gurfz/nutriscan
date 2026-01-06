@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Animated,
   Platform,
 } from 'react-native';
 import { useRouter, Href } from 'expo-router';
@@ -24,25 +23,6 @@ export default function ScannerPage() {
   const router = useRouter();
   const { recentScans, isLoading } = useScanHistory();
   const { toggleFridge, isInFridge } = useFridge();
-
-  const scaleAnim = React.useRef(new Animated.Value(1)).current;
-
-  const handleScanPress = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      router.push('/scanner' as Href);
-    });
-  };
 
   const handleProductPress = (barcode: string) => {
     router.push({ pathname: '/product/[barcode]', params: { barcode } } as Href);
@@ -134,28 +114,6 @@ export default function ScannerPage() {
           </Text>
         </View>
 
-        <Animated.View style={[styles.scanButtonContainer, { transform: [{ scale: scaleAnim }] }]}>
-          <TouchableOpacity
-            style={styles.scanButton}
-            onPress={handleScanPress}
-            activeOpacity={0.9}
-            testID="scan-button"
-          >
-            <LinearGradient
-              colors={[Colors.primary, Colors.primaryDark]}
-              style={styles.scanButtonGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.scanIconContainer}>
-                <Scan color="#FFFFFF" size={48} strokeWidth={1.5} />
-              </View>
-              <Text style={styles.scanButtonText}>Scan Product</Text>
-              <Text style={styles.scanButtonSubtext}>Take a photo of the product</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
         {recentScans.length > 0 && (
           <View style={styles.recentSection}>
             <View style={styles.sectionHeader}>
@@ -209,7 +167,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 40,
     paddingBottom: 24,
   },
   greeting: {
